@@ -23,13 +23,21 @@ func main() {
 		paths = []string{"."}
 	}
 
+	exitWithError := false
+
 	for _, path := range paths {
 		messages, err := checkNoGlobals(path)
 		for _, message := range messages {
 			fmt.Fprintf(os.Stdout, "%s\n", message)
+			exitWithError = true
 		}
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			exitWithError = true
 		}
+	}
+
+	if exitWithError {
+		os.Exit(1)
 	}
 }
