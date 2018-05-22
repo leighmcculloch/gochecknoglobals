@@ -24,6 +24,7 @@ func TestCheckNoGlobals(t *testing.T) {
 			"testdata/5/code.go:3 myVar1 is a global variable",
 			"testdata/5/code.go:3 myVar2 is a global variable",
 		},
+		nil,
 	}
 
 	for i, wantMessages := range cases {

@@ -41,6 +41,9 @@ func checkNoGlobals(path string) ([]string, error) {
 					valueSpec := genDecl.Specs[0].(*ast.ValueSpec)
 					for i := 0; i < len(valueSpec.Names); i++ {
 						name := valueSpec.Names[i].Name
+						if name == "_" {
+							continue
+						}
 						message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, name)
 						messages = append(messages, message)
 					}
