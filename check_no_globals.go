@@ -7,17 +7,28 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-func checkNoGlobals(path string) ([]string, error) {
+func checkNoGlobals(rootPath string) ([]string, error) {
+	const recursiveSuffix = string(filepath.Separator) + "..."
+	recursive := false
+	if strings.HasSuffix(rootPath, recursiveSuffix) {
+		recursive = true
+		rootPath = rootPath[:len(rootPath)-len(recursiveSuffix)]
+	}
+
 	messages := []string{}
 
-	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if !info.IsDir() {
 			return nil
+		}
+		if !recursive && path != rootPath {
+			return filepath.SkipDir
 		}
 
 		fset := token.NewFileSet()

@@ -28,5 +28,13 @@ gochecknoglobals
 or
 
 ```
-gochecknoglobals [path] [path] ...
+gochecknoglobals ./...
 ```
+
+or
+
+```
+gochecknoglobals [path] [path] [path] [etc]
+```
+
+Note: Paths are only inspected recursively if the Go `/...` recursive path suffix is appended to the path.
