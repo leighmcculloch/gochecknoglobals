@@ -14,6 +14,10 @@ func TestCheckNoGlobals(t *testing.T) {
 			wantMessages: nil,
 		},
 		{
+			path:         "testdata/0/code.go",
+			wantMessages: nil,
+		},
+		{
 			path:         "testdata/1",
 			wantMessages: nil,
 		},
@@ -28,6 +32,12 @@ func TestCheckNoGlobals(t *testing.T) {
 			wantMessages: []string{
 				"testdata/3/code_0.go:8 theVar is a global variable",
 				"testdata/3/code_1.go:3 myVar is a global variable",
+			},
+		},
+		{
+			path: "testdata/3/code_0.go",
+			wantMessages: []string{
+				"testdata/3/code_0.go:8 theVar is a global variable",
 			},
 		},
 		{
