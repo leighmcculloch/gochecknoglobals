@@ -20,7 +20,7 @@ func main() {
 
 	paths := flag.Args()
 	if len(paths) == 0 {
-		paths = []string{"."}
+		paths = []string{"./..."}
 	}
 
 	exitWithError := false
