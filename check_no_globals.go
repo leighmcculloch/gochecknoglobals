@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func checkNoGlobals(rootPath string) ([]string, error) {
+func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
 	const recursiveSuffix = string(filepath.Separator) + "..."
 	recursive := false
 	if strings.HasSuffix(rootPath, recursiveSuffix) {
@@ -31,6 +31,9 @@ func checkNoGlobals(rootPath string) ([]string, error) {
 			return nil
 		}
 		if !strings.HasSuffix(path, ".go") {
+			return nil
+		}
+		if !includeTests && strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
 

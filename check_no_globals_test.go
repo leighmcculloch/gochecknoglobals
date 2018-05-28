@@ -1,16 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestCheckNoGlobals(t *testing.T) {
 	cases := []struct {
 		path         string
+		includeTests bool
 		wantMessages []string
 	}{
 		{
 			path:         "testdata/0",
+			wantMessages: nil,
+		},
+		{
+			path:         "testdata/0",
+			includeTests: true,
 			wantMessages: nil,
 		},
 		{
@@ -25,6 +32,14 @@ func TestCheckNoGlobals(t *testing.T) {
 			path: "testdata/2",
 			wantMessages: []string{
 				"testdata/2/code.go:3 myVar is a global variable",
+			},
+		},
+		{
+			path:         "testdata/2",
+			includeTests: true,
+			wantMessages: []string{
+				"testdata/2/code.go:3 myVar is a global variable",
+				"testdata/2/code_test.go:3 myTestVar is a global variable",
 			},
 		},
 		{
@@ -83,8 +98,9 @@ func TestCheckNoGlobals(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		t.Run(c.path, func(t *testing.T) {
-			messages, err := checkNoGlobals(c.path)
+		caseName := fmt.Sprintf("%s include tests: %t", c.path, c.includeTests)
+		t.Run(caseName, func(t *testing.T) {
+			messages, err := checkNoGlobals(c.path, c.includeTests)
 			if err != nil {
 				t.Fatalf("got error %#v", err)
 			}

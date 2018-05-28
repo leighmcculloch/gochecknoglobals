@@ -25,16 +25,18 @@ go get 4d63.com/gochecknoglobals
 gochecknoglobals
 ```
 
-or
-
 ```
 gochecknoglobals ./...
 ```
 
-or
-
 ```
 gochecknoglobals [path] [path] [path] [etc]
+```
+
+Add `-t` to include tests.
+
+```
+gochecknoglobals -t [path]
 ```
 
 Note: Paths are only inspected recursively if the Go `/...` recursive path suffix is appended to the path.
