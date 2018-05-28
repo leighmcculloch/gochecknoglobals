@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	flagPrintHelp := flag.Bool("help", false, "")
+	flagPrintHelp := flag.Bool("h", false, "Print help")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: gochecknoglobals [path] [path] ...\n")
 	}
