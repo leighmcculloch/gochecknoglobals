@@ -14,10 +14,9 @@ func isWhitelisted(i *ast.Ident) bool {
 	return i.Name == "_" || looksLikeError(i)
 }
 
-// looksLikeError checks if the AST identifier starts with 'err' or 'Err'.
+// looksLikeError returns true if the AST identifier starts with 'err' or 'Err'.
 //
-// See the following issue on how to further improve this func:
-// https://github.com/leighmcculloch/gochecknoglobals/issues/5
+// TODO: https://github.com/leighmcculloch/gochecknoglobals/issues/5
 func looksLikeError(i *ast.Ident) bool {
 	prefix := "err"
 	if i.IsExported() {
