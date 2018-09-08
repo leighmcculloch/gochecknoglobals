@@ -10,6 +10,22 @@ import (
 	"strings"
 )
 
+func isWhitelisted(i *ast.Ident) bool {
+	return i.Name == "_" || looksLikeError(i)
+}
+
+// looksLikeError returns true if the AST identifier starts
+// with 'err' or 'Err', or false otherwise.
+//
+// TODO: https://github.com/leighmcculloch/gochecknoglobals/issues/5
+func looksLikeError(i *ast.Ident) bool {
+	prefix := "err"
+	if i.IsExported() {
+		prefix = "Err"
+	}
+	return strings.HasPrefix(i.Name, prefix)
+}
+
 func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
 	const recursiveSuffix = string(filepath.Separator) + "..."
 	recursive := false
@@ -55,11 +71,11 @@ func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
 			line := fset.Position(genDecl.TokPos).Line
 			valueSpec := genDecl.Specs[0].(*ast.ValueSpec)
 			for i := 0; i < len(valueSpec.Names); i++ {
-				name := valueSpec.Names[i].Name
-				if name == "_" {
+				vn := valueSpec.Names[i]
+				if isWhitelisted(vn) {
 					continue
 				}
-				message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, name)
+				message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, vn.Name)
 				messages = append(messages, message)
 			}
 		}
