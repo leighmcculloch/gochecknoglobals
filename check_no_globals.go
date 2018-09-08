@@ -69,14 +69,15 @@ func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
 			}
 			filename := fset.Position(genDecl.TokPos).Filename
 			line := fset.Position(genDecl.TokPos).Line
-			valueSpec := genDecl.Specs[0].(*ast.ValueSpec)
-			for i := 0; i < len(valueSpec.Names); i++ {
-				vn := valueSpec.Names[i]
-				if isWhitelisted(vn) {
-					continue
+			for _, spec := range genDecl.Specs {
+				valueSpec := spec.(*ast.ValueSpec)
+				for _, vn := range valueSpec.Names {
+					if isWhitelisted(vn) {
+						continue
+					}
+					message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, vn.Name)
+					messages = append(messages, message)
 				}
-				message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, vn.Name)
-				messages = append(messages, message)
 			}
 		}
 		return nil
