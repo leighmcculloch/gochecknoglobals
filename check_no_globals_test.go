@@ -106,6 +106,12 @@ func TestCheckNoGlobals(t *testing.T) {
 			},
 		},
 		{
+			path: "testdata/9",
+			wantMessages: []string{
+				"testdata/9/code.go:4 Version22 is a global variable",
+			},
+		},
+		{
 			path:         ".",
 			wantMessages: nil,
 		},
@@ -135,6 +141,7 @@ func TestCheckNoGlobals(t *testing.T) {
 				"testdata/8/code.go:20 myVarError is a global variable",
 				"testdata/8/code.go:21 customErr is a global variable",
 				"testdata/8/code.go:30 declaredErr is a global variable",
+				"testdata/9/code.go:4 Version22 is a global variable",
 			},
 		},
 	}

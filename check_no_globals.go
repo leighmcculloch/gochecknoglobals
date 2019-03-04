@@ -11,7 +11,7 @@ import (
 )
 
 func isWhitelisted(i *ast.Ident) bool {
-	return i.Name == "_" || looksLikeError(i)
+	return i.Name == "_" || i.Name == "Version" || looksLikeError(i)
 }
 
 // looksLikeError returns true if the AST identifier starts
