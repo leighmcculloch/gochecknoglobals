@@ -13,6 +13,13 @@ Global variables are an input to functions that is not visible in the functions 
 https://peter.bourgon.org/blog/2017/06/09/theory-of-modern-go.html
 https://twitter.com/davecheney/status/871939730761547776
 
+### Exceptions
+
+There are **very** few exceptions to the global variable rule. This will will ignore the following patterns:
+ * Variables with an "Err" prefix
+ * Variables named _
+ * Variables named Version to support [compile time version setting](https://medium.com/@joshroppo/setting-go-1-5-variables-at-compile-time-for-versioning-5b30a965d33e)
+
 ## Install
 
 ```
