@@ -1,4 +1,5 @@
 package code
 
 var Version string
-var Version22 string
+var version22 string
+var version string

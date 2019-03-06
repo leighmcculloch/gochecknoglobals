@@ -18,7 +18,7 @@ https://twitter.com/davecheney/status/871939730761547776
 There are **very** few exceptions to the global variable rule. This tool will ignore the following patterns:
  * Variables with an "Err" prefix
  * Variables named _
- * Variables named Version to support [compile time version setting](https://medium.com/@joshroppo/setting-go-1-5-variables-at-compile-time-for-versioning-5b30a965d33e)
+ * Variables named "version" to support [compile time version setting](https://medium.com/@joshroppo/setting-go-1-5-variables-at-compile-time-for-versioning-5b30a965d33e)
 
 ## Install
 
