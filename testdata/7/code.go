@@ -13,7 +13,8 @@ var myVar = 1
 var errFakeErrorUnexported = 1
 var ErrFakeErrorExported = 1
 
-// Those errors are not named correctly
+// Those errors are not named correctly but OK since the package and function
+// from selector expression is whiteliste (errors.New())
 var myErrVar = errors.New("myErrVar")
 var myVarErr = errors.New("myVarErr")
 var myVarError = errors.New("myVarErr")
@@ -25,7 +26,8 @@ var ErrExported = errors.New("ErrExported")
 var errCustomUnexported = customError{"errCustomUnexported"}
 var ErrCustomExported = customError{"ErrCustomExported"}
 
-// Those actual errors have a declared error type
+// Those actual errors have a declared error type but both are OK since they're
+// assigned with whitelisted selector expression (errors.New())
 var declaredErr error = errors.New("declaredErr")
 var errDeclared error = errors.New("errDeclared")
 

@@ -10,8 +10,48 @@ import (
 	"strings"
 )
 
-func isWhitelisted(i *ast.Ident) bool {
-	return i.Name == "_" || i.Name == "version" || looksLikeError(i)
+func isWhitelisted(v ast.Node) bool {
+	switch i := v.(type) {
+	case *ast.Ident:
+		return i.Name == "_" || i.Name == "version" || looksLikeError(i)
+	case *ast.CallExpr:
+		expr, ok := i.Fun.(*ast.SelectorExpr)
+		if !ok {
+			break
+		}
+
+		return isWhitelsiteSelectorExpression(expr)
+	case *ast.CompositeLit:
+		expr, ok := i.Type.(*ast.SelectorExpr)
+		if !ok {
+			break
+		}
+
+		return isWhitelsiteSelectorExpression(expr)
+	}
+
+	return false
+}
+
+func isWhitelsiteSelectorExpression(v *ast.SelectorExpr) bool {
+	x, ok := v.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+
+	allowedCombinations := [][]string{
+		{"errors", "New"},
+		{"fmt", "Errorf"},
+		{"regexp", "MustCompile"},
+	}
+
+	for _, i := range allowedCombinations {
+		if x.Name == i[0] && v.Sel.Name == i[1] {
+			return true
+		}
+	}
+
+	return false
 }
 
 // looksLikeError returns true if the AST identifier starts
@@ -70,6 +110,22 @@ func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
 			filename := fset.Position(genDecl.TokPos).Filename
 			for _, spec := range genDecl.Specs {
 				valueSpec := spec.(*ast.ValueSpec)
+				onlyWhitelistedValues := false
+
+				for _, vn := range valueSpec.Values {
+					if isWhitelisted(vn) {
+						onlyWhitelistedValues = true
+						continue
+					}
+
+					onlyWhitelistedValues = false
+					break
+				}
+
+				if onlyWhitelistedValues {
+					continue
+				}
+
 				for _, vn := range valueSpec.Names {
 					if isWhitelisted(vn) {
 						continue
