@@ -20,20 +20,20 @@ func isWhitelisted(v ast.Node) bool {
 			break
 		}
 
-		return isWhitelsiteSelectorExpression(expr)
+		return isWhitelistedSelectorExpression(expr)
 	case *ast.CompositeLit:
 		expr, ok := i.Type.(*ast.SelectorExpr)
 		if !ok {
 			break
 		}
 
-		return isWhitelsiteSelectorExpression(expr)
+		return isWhitelistedSelectorExpression(expr)
 	}
 
 	return false
 }
 
-func isWhitelsiteSelectorExpression(v *ast.SelectorExpr) bool {
+func isWhitelistedSelectorExpression(v *ast.SelectorExpr) bool {
 	x, ok := v.X.(*ast.Ident)
 	if !ok {
 		return false
