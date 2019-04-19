@@ -19,6 +19,7 @@ There are very few exceptions to the global variable rule. This tool will ignore
  * Variables with an `Err` prefix
  * Variables named `_`
  * Variables named `version`
+ * Variables assigned from `errors.New()`, `fmt.Errorf()` or `regexp.MustCompile()`
 
 ## Install
 
