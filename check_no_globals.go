@@ -15,19 +15,13 @@ func isWhitelisted(v ast.Node) bool {
 	case *ast.Ident:
 		return i.Name == "_" || i.Name == "version" || looksLikeError(i)
 	case *ast.CallExpr:
-		expr, ok := i.Fun.(*ast.SelectorExpr)
-		if !ok {
-			break
+		if expr, ok := i.Fun.(*ast.SelectorExpr); ok {
+			return isWhitelistedSelectorExpression(expr)
 		}
-
-		return isWhitelistedSelectorExpression(expr)
 	case *ast.CompositeLit:
-		expr, ok := i.Type.(*ast.SelectorExpr)
-		if !ok {
-			break
+		if expr, ok := i.Type.(*ast.SelectorExpr); ok {
+			return isWhitelistedSelectorExpression(expr)
 		}
-
-		return isWhitelistedSelectorExpression(expr)
 	}
 
 	return false
