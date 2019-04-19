@@ -10,6 +10,11 @@ import (
 	"strings"
 )
 
+type whitelistedExpression struct {
+	Name    string
+	SelName string
+}
+
 func isWhitelisted(v ast.Node) bool {
 	switch i := v.(type) {
 	case *ast.Ident:
@@ -33,14 +38,23 @@ func isWhitelistedSelectorExpression(v *ast.SelectorExpr) bool {
 		return false
 	}
 
-	allowedCombinations := [][]string{
-		{"errors", "New"},
-		{"fmt", "Errorf"},
-		{"regexp", "MustCompile"},
+	whitelist := []whitelistedExpression{
+		{
+			Name:    "errors",
+			SelName: "New",
+		},
+		{
+			Name:    "fmt",
+			SelName: "Errorf",
+		},
+		{
+			Name:    "regexp",
+			SelName: "MustCompile",
+		},
 	}
 
-	for _, i := range allowedCombinations {
-		if x.Name == i[0] && v.Sel.Name == i[1] {
+	for _, i := range whitelist {
+		if x.Name == i.Name && v.Sel.Name == i.SelName {
 			return true
 		}
 	}
