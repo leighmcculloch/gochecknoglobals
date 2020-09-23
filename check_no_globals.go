@@ -10,50 +10,42 @@ import (
 	"strings"
 )
 
-type whitelistedExpression struct {
+// allowedExpression is a struct representing packages and methods that will
+// be an allowed combination to use as a global variable, f.ex. Name `regexp`
+// and SelName `MustCompile`.
+type allowedExpression struct {
 	Name    string
 	SelName string
 }
 
-func isWhitelisted(v ast.Node) bool {
+func isAllowed(v ast.Node) bool {
 	switch i := v.(type) {
 	case *ast.Ident:
 		return i.Name == "_" || i.Name == "version" || looksLikeError(i)
 	case *ast.CallExpr:
 		if expr, ok := i.Fun.(*ast.SelectorExpr); ok {
-			return isWhitelistedSelectorExpression(expr)
+			return isAllowedSelectorExpression(expr)
 		}
 	case *ast.CompositeLit:
 		if expr, ok := i.Type.(*ast.SelectorExpr); ok {
-			return isWhitelistedSelectorExpression(expr)
+			return isAllowedSelectorExpression(expr)
 		}
 	}
 
 	return false
 }
 
-func isWhitelistedSelectorExpression(v *ast.SelectorExpr) bool {
+func isAllowedSelectorExpression(v *ast.SelectorExpr) bool {
 	x, ok := v.X.(*ast.Ident)
 	if !ok {
 		return false
 	}
 
-	whitelist := []whitelistedExpression{
-		{
-			Name:    "errors",
-			SelName: "New",
-		},
-		{
-			Name:    "fmt",
-			SelName: "Errorf",
-		},
-		{
-			Name:    "regexp",
-			SelName: "MustCompile",
-		},
+	allowList := []allowedExpression{
+		{Name: "regexp", SelName: "MustCompile"},
 	}
 
-	for _, i := range whitelist {
+	for _, i := range allowList {
 		if x.Name == i.Name && v.Sel.Name == i.SelName {
 			return true
 		}
@@ -118,26 +110,27 @@ func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
 			filename := fset.Position(genDecl.TokPos).Filename
 			for _, spec := range genDecl.Specs {
 				valueSpec := spec.(*ast.ValueSpec)
-				onlyWhitelistedValues := false
+				onlyAllowedValues := false
 
 				for _, vn := range valueSpec.Values {
-					if isWhitelisted(vn) {
-						onlyWhitelistedValues = true
+					if isAllowed(vn) {
+						onlyAllowedValues = true
 						continue
 					}
 
-					onlyWhitelistedValues = false
+					onlyAllowedValues = false
 					break
 				}
 
-				if onlyWhitelistedValues {
+				if onlyAllowedValues {
 					continue
 				}
 
 				for _, vn := range valueSpec.Names {
-					if isWhitelisted(vn) {
+					if isAllowed(vn) {
 						continue
 					}
+
 					line := fset.Position(vn.Pos()).Line
 					message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, vn.Name)
 					messages = append(messages, message)
