@@ -16,37 +16,42 @@ import (
 type allowedExpression struct {
 	Name    string
 	SelName string
+	IsErr   bool
 }
 
-func isAllowed(v ast.Node) bool {
+func isAllowed(ident *ast.Ident, v ast.Node) bool {
 	switch i := v.(type) {
-	case *ast.Ident:
-		return i.Name == "_" || i.Name == "version" || looksLikeError(i)
 	case *ast.CallExpr:
 		if expr, ok := i.Fun.(*ast.SelectorExpr); ok {
-			return isAllowedSelectorExpression(expr)
+			return isAllowedSelectorExpression(ident, expr)
 		}
 	case *ast.CompositeLit:
 		if expr, ok := i.Type.(*ast.SelectorExpr); ok {
-			return isAllowedSelectorExpression(expr)
+			return isAllowedSelectorExpression(ident, expr)
 		}
 	}
 
-	return false
+	return ident.Name == "version" || ident.Name == "_"
 }
 
-func isAllowedSelectorExpression(v *ast.SelectorExpr) bool {
+func isAllowedSelectorExpression(ident *ast.Ident, v *ast.SelectorExpr) bool {
 	x, ok := v.X.(*ast.Ident)
 	if !ok {
 		return false
 	}
 
 	allowList := []allowedExpression{
-		{Name: "regexp", SelName: "MustCompile"},
+		{Name: "regexp", SelName: "MustCompile", IsErr: false},
+		{Name: "fmt", SelName: "Errorf", IsErr: true},
+		{Name: "errors", SelName: "New", IsErr: true},
 	}
 
 	for _, i := range allowList {
 		if x.Name == i.Name && v.Sel.Name == i.SelName {
+			if i.IsErr {
+				return looksLikeError(ident)
+			}
+
 			return true
 		}
 	}
@@ -99,41 +104,34 @@ func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
 			return err
 		}
 
+		addError := func(filename string, line int, variable string) {
+			message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, variable)
+			messages = append(messages, message)
+		}
+
 		for _, decl := range file.Decls {
 			genDecl, ok := decl.(*ast.GenDecl)
 			if !ok {
 				continue
 			}
+
 			if genDecl.Tok != token.VAR {
 				continue
 			}
+
 			filename := fset.Position(genDecl.TokPos).Filename
 			for _, spec := range genDecl.Specs {
 				valueSpec := spec.(*ast.ValueSpec)
-				onlyAllowedValues := false
 
-				for _, vn := range valueSpec.Values {
-					if isAllowed(vn) {
-						onlyAllowedValues = true
-						continue
-					}
-
-					onlyAllowedValues = false
-					break
-				}
-
-				if onlyAllowedValues {
+				if len(valueSpec.Values) != len(valueSpec.Names) {
+					addError(filename, fset.Position(valueSpec.Names[0].Pos()).Line, valueSpec.Names[0].Name)
 					continue
 				}
 
-				for _, vn := range valueSpec.Names {
-					if isAllowed(vn) {
-						continue
+				for i := 0; i < len(valueSpec.Names); i++ {
+					if !isAllowed(valueSpec.Names[i], valueSpec.Values[i]) {
+						addError(filename, fset.Position(valueSpec.Names[i].Pos()).Line, valueSpec.Names[i].Name)
 					}
-
-					line := fset.Position(vn.Pos()).Line
-					message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, vn.Name)
-					messages = append(messages, message)
 				}
 			}
 		}
