@@ -10,8 +10,48 @@ import (
 	"strings"
 )
 
-func isWhitelisted(i *ast.Ident) bool {
-	return i.Name == "_" || i.Name == "version" || looksLikeError(i)
+// allowedExpression is a struct representing packages and methods that will
+// be an allowed combination to use as a global variable, f.ex. Name `regexp`
+// and SelName `MustCompile`.
+type allowedExpression struct {
+	Name    string
+	SelName string
+}
+
+func isAllowed(v ast.Node) bool {
+	switch i := v.(type) {
+	case *ast.Ident:
+		return i.Name == "_" || i.Name == "version" || looksLikeError(i)
+	case *ast.CallExpr:
+		if expr, ok := i.Fun.(*ast.SelectorExpr); ok {
+			return isAllowedSelectorExpression(expr)
+		}
+	case *ast.CompositeLit:
+		if expr, ok := i.Type.(*ast.SelectorExpr); ok {
+			return isAllowedSelectorExpression(expr)
+		}
+	}
+
+	return false
+}
+
+func isAllowedSelectorExpression(v *ast.SelectorExpr) bool {
+	x, ok := v.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+
+	allowList := []allowedExpression{
+		{Name: "regexp", SelName: "MustCompile"},
+	}
+
+	for _, i := range allowList {
+		if x.Name == i.Name && v.Sel.Name == i.SelName {
+			return true
+		}
+	}
+
+	return false
 }
 
 // looksLikeError returns true if the AST identifier starts
@@ -70,10 +110,27 @@ func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
 			filename := fset.Position(genDecl.TokPos).Filename
 			for _, spec := range genDecl.Specs {
 				valueSpec := spec.(*ast.ValueSpec)
-				for _, vn := range valueSpec.Names {
-					if isWhitelisted(vn) {
+				onlyAllowedValues := false
+
+				for _, vn := range valueSpec.Values {
+					if isAllowed(vn) {
+						onlyAllowedValues = true
 						continue
 					}
+
+					onlyAllowedValues = false
+					break
+				}
+
+				if onlyAllowedValues {
+					continue
+				}
+
+				for _, vn := range valueSpec.Names {
+					if isAllowed(vn) {
+						continue
+					}
+
 					line := fset.Position(vn.Pos()).Line
 					message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, vn.Name)
 					messages = append(messages, message)

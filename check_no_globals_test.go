@@ -119,6 +119,8 @@ func TestCheckNoGlobals(t *testing.T) {
 		{
 			path: "./...",
 			wantMessages: []string{
+				"testdata/10/code.go:10 myVar is a global variable",
+				"testdata/10/code.go:33 HTTPClient is a global variable",
 				"testdata/2/code.go:3 myVar is a global variable",
 				"testdata/3/code_0.go:8 theVar is a global variable",
 				"testdata/3/code_1.go:3 myVar is a global variable",
