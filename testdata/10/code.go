@@ -12,7 +12,7 @@ var myVar = 1
 // ErrNotFound is an error and should be OK.
 var ErrNotFound = errors.New("this is error")
 
-// ErrIsNotErr is not an error and should not be OK.
+// ErrIsNotErr is an error and should be OK.
 var ErrIsNotErr = 1
 
 // IsOnlyDigitsRe is a global regexp that should be OK.
