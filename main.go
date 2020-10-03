@@ -1,3 +1,6 @@
+package gochecknoglobals
+
+/*
 package main // import "4d63.com/gochecknoglobals"
 
 import (
@@ -45,3 +48,4 @@ func main() {
 		os.Exit(1)
 	}
 }
+*/

@@ -1,13 +1,15 @@
-package main
+package gochecknoglobals
 
 import (
+	"flag"
 	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
-	"os"
-	"path/filepath"
+	"strconv"
 	"strings"
+
+	"github.com/kyoh86/nolint"
+	"golang.org/x/tools/go/analysis"
 )
 
 // allowedExpression is a struct representing packages and methods that will
@@ -16,6 +18,68 @@ import (
 type allowedExpression struct {
 	Name    string
 	SelName string
+}
+
+// reports is the reports of found global variables that's not valid and will be
+// reported to the analysis pass.
+type report struct {
+	name string
+	pos  token.Pos
+}
+
+// Analyzer is the analasys analyzer for gochecknoglobals. Ironically enough,
+// this is in fact a global variable.
+var Analyzer = &analysis.Analyzer{ //nolint
+	Name:             "gochecknoglobals",
+	Doc:              "Don't allow global variables",
+	Run:              run,
+	Flags:            flags(),
+	Requires:         []*analysis.Analyzer{nolint.Analyzer},
+	RunDespiteErrors: true,
+}
+
+func flags() flag.FlagSet {
+	flags := flag.NewFlagSet("", flag.ExitOnError)
+	flags.Bool("t", false, "Include tests")
+
+	return *flags
+}
+
+func run(pass *analysis.Pass) (interface{}, error) {
+	noLinter := pass.ResultOf[nolint.Analyzer].(*nolint.NoLinter)
+	runTests, _ := strconv.ParseBool(pass.Analyzer.Flags.Lookup("t").Value.String())
+
+	for _, file := range pass.Files {
+		filename := pass.Fset.Position(file.Pos()).Filename
+		if !runTests && strings.HasSuffix(filename, "_test.go") {
+			continue
+		}
+
+		for _, decl := range file.Decls {
+			if noLinter.IgnoreNode(decl, "global") {
+				continue
+			}
+
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok {
+				continue
+			}
+
+			if genDecl.Tok != token.VAR {
+				continue
+			}
+
+			for _, issue := range checkNoGlobals(genDecl) {
+				pass.Report(analysis.Diagnostic{
+					Pos:      issue.pos,
+					Category: "global",
+					Message:  fmt.Sprintf("%s is a global variable", issue.name),
+				})
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 func isAllowed(v ast.Node) bool {
@@ -66,79 +130,38 @@ func looksLikeError(i *ast.Ident) bool {
 	return strings.HasPrefix(i.Name, prefix)
 }
 
-func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
-	const recursiveSuffix = string(filepath.Separator) + "..."
-	recursive := false
-	if strings.HasSuffix(rootPath, recursiveSuffix) {
-		recursive = true
-		rootPath = rootPath[:len(rootPath)-len(recursiveSuffix)]
+func checkNoGlobals(genDecl *ast.GenDecl) []report {
+	var globalVariables []report
+
+	for _, spec := range genDecl.Specs {
+		valueSpec := spec.(*ast.ValueSpec)
+		onlyAllowedValues := false
+
+		for _, vn := range valueSpec.Values {
+			if isAllowed(vn) {
+				onlyAllowedValues = true
+				continue
+			}
+
+			onlyAllowedValues = false
+			break
+		}
+
+		if onlyAllowedValues {
+			continue
+		}
+
+		for _, vn := range valueSpec.Names {
+			if isAllowed(vn) {
+				continue
+			}
+
+			globalVariables = append(globalVariables, report{
+				name: vn.Name,
+				pos:  vn.Pos(),
+			})
+		}
 	}
 
-	messages := []string{}
-
-	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			if !recursive && path != rootPath {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
-		if !includeTests && strings.HasSuffix(path, "_test.go") {
-			return nil
-		}
-
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, path, nil, 0)
-		if err != nil {
-			return err
-		}
-
-		for _, decl := range file.Decls {
-			genDecl, ok := decl.(*ast.GenDecl)
-			if !ok {
-				continue
-			}
-			if genDecl.Tok != token.VAR {
-				continue
-			}
-			filename := fset.Position(genDecl.TokPos).Filename
-			for _, spec := range genDecl.Specs {
-				valueSpec := spec.(*ast.ValueSpec)
-				onlyAllowedValues := false
-
-				for _, vn := range valueSpec.Values {
-					if isAllowed(vn) {
-						onlyAllowedValues = true
-						continue
-					}
-
-					onlyAllowedValues = false
-					break
-				}
-
-				if onlyAllowedValues {
-					continue
-				}
-
-				for _, vn := range valueSpec.Names {
-					if isAllowed(vn) {
-						continue
-					}
-
-					line := fset.Position(vn.Pos()).Line
-					message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, vn.Name)
-					messages = append(messages, message)
-				}
-			}
-		}
-		return nil
-	})
-
-	return messages, err
+	return globalVariables
 }
