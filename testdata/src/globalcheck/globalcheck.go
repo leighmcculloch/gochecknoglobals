@@ -90,5 +90,3 @@ var (
 	PrecompileSix  = regexp.MustCompile(`[a-z]{6,9}`)
 	HTTPClient     = http.Client{} // want "HTTPClient is a global variable"
 )
-
-var invalid = 1 //nolint // Can ignore with nolint directive

@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
-	"strconv"
 	"strings"
 
-	"github.com/kyoh86/nolint"
 	"golang.org/x/tools/go/analysis"
 )
 
@@ -34,7 +32,6 @@ var Analyzer = &analysis.Analyzer{ //nolint
 	Doc:              "Don't allow global variables",
 	Run:              run,
 	Flags:            flags(),
-	Requires:         []*analysis.Analyzer{nolint.Analyzer},
 	RunDespiteErrors: true,
 }
 
@@ -46,8 +43,7 @@ func flags() flag.FlagSet {
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
-	noLinter := pass.ResultOf[nolint.Analyzer].(*nolint.NoLinter)
-	runTests, _ := strconv.ParseBool(pass.Analyzer.Flags.Lookup("t").Value.String())
+	runTests := pass.Analyzer.Flags.Lookup("t").Value.(flag.Getter).Get().(bool)
 
 	for _, file := range pass.Files {
 		filename := pass.Fset.Position(file.Pos()).Filename
@@ -56,10 +52,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		}
 
 		for _, decl := range file.Decls {
-			if noLinter.IgnoreNode(decl, "global") {
-				continue
-			}
-
 			genDecl, ok := decl.(*ast.GenDecl)
 			if !ok {
 				continue
