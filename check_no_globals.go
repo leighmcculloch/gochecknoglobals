@@ -27,12 +27,14 @@ type report struct {
 
 // Analyzer is the analasys analyzer for gochecknoglobals. Ironically enough,
 // this is in fact a global variable.
-var Analyzer = &analysis.Analyzer{ //nolint
-	Name:             "gochecknoglobals",
-	Doc:              "Don't allow global variables",
-	Run:              run,
-	Flags:            flags(),
-	RunDespiteErrors: true,
+func Analyzer() *analysis.Analyzer {
+	return &analysis.Analyzer{
+		Name:             "gochecknoglobals",
+		Doc:              "Don't allow global variables",
+		Run:              run,
+		Flags:            flags(),
+		RunDespiteErrors: true,
+	}
 }
 
 func flags() flag.FlagSet {
@@ -47,6 +49,12 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 	for _, file := range pass.Files {
 		filename := pass.Fset.Position(file.Pos()).Filename
+
+		// Only test .go files, not generated test files.
+		if !strings.HasSuffix(filename, ".go") {
+			continue
+		}
+
 		if !runTests && strings.HasSuffix(filename, "_test.go") {
 			continue
 		}

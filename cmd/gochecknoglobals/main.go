@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	singlechecker.Main(gochecknoglobals.Analyzer)
+	singlechecker.Main(gochecknoglobals.Analyzer())
 }

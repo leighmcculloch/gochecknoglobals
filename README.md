@@ -36,7 +36,7 @@ specifying packages.
 [Go's analysis package]: https://pkg.go.dev/golang.org/x/tools/go/analysis
 
 ```
-gochecknoglobals [package]
+gochecknoglobals <package>
 ```
 
 ```
@@ -47,5 +47,5 @@ By default, test files will not be checked but can be included by adding the
 `-t` flag.
 
 ```
-gochecknoglobals -t [package]
+gochecknoglobals -t <package>
 ```
