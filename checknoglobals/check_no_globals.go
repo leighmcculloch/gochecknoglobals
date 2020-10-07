@@ -103,11 +103,9 @@ func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
 			if !ok {
 				continue
 			}
-
 			if genDecl.Tok != token.VAR {
 				continue
 			}
-
 			for _, spec := range genDecl.Specs {
 				valueSpec := spec.(*ast.ValueSpec)
 				onlyAllowedValues := false
