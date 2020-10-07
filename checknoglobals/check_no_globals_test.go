@@ -2,6 +2,7 @@ package checknoglobals
 
 import (
 	"flag"
+	"strconv"
 	"testing"
 
 	"golang.org/x/tools/go/analysis/analysistest"
@@ -15,15 +16,10 @@ func TestCheckNoGlobals(t *testing.T) {
 	analyzer := Analyzer()
 	analyzer.Flags = *flags
 
-	analysistest.Run(t, testdata, analyzer, "0")
-	analysistest.Run(t, testdata, analyzer, "1")
-	analysistest.Run(t, testdata, analyzer, "2")
-	analysistest.Run(t, testdata, analyzer, "3")
-	analysistest.Run(t, testdata, analyzer, "4")
-	analysistest.Run(t, testdata, analyzer, "5")
-	analysistest.Run(t, testdata, analyzer, "6")
-	analysistest.Run(t, testdata, analyzer, "7")
-	analysistest.Run(t, testdata, analyzer, "8")
-	analysistest.Run(t, testdata, analyzer, "9")
-	analysistest.Run(t, testdata, analyzer, "10")
+	for i := 0; i <= 10; i++ {
+		dir := strconv.Itoa(i)
+		t.Run(dir, func(t *testing.T) {
+			analysistest.Run(t, testdata, analyzer, dir)
+		})
+	}
 }
