@@ -1,4 +1,4 @@
-package gochecknoglobals
+package checknoglobals
 
 import (
 	"flag"
