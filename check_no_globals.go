@@ -18,20 +18,14 @@ type allowedExpression struct {
 	SelName string
 }
 
-// reports is the reports of found global variables that's not valid and will be
-// reported to the analysis pass.
-type report struct {
-	name string
-	pos  token.Pos
-}
-
-// Analyzer is the analasys analyzer for gochecknoglobals. Ironically enough,
-// this is in fact a global variable.
+// Analyzer provides an Analyzer that checks that there are no global
+// variables, except for errors and variables containing regular
+// expressions.
 func Analyzer() *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name:             "gochecknoglobals",
-		Doc:              "Don't allow global variables",
-		Run:              run,
+		Doc:              "Check that there are no global variables",
+		Run:              checkNoGlobals,
 		Flags:            flags(),
 		RunDespiteErrors: true,
 	}
@@ -42,44 +36,6 @@ func flags() flag.FlagSet {
 	flags.Bool("t", false, "Include tests")
 
 	return *flags
-}
-
-func run(pass *analysis.Pass) (interface{}, error) {
-	runTests := pass.Analyzer.Flags.Lookup("t").Value.(flag.Getter).Get().(bool)
-
-	for _, file := range pass.Files {
-		filename := pass.Fset.Position(file.Pos()).Filename
-
-		// Only test .go files, not generated test files.
-		if !strings.HasSuffix(filename, ".go") {
-			continue
-		}
-
-		if !runTests && strings.HasSuffix(filename, "_test.go") {
-			continue
-		}
-
-		for _, decl := range file.Decls {
-			genDecl, ok := decl.(*ast.GenDecl)
-			if !ok {
-				continue
-			}
-
-			if genDecl.Tok != token.VAR {
-				continue
-			}
-
-			for _, issue := range checkNoGlobals(genDecl) {
-				pass.Report(analysis.Diagnostic{
-					Pos:      issue.pos,
-					Category: "global",
-					Message:  fmt.Sprintf("%s is a global variable", issue.name),
-				})
-			}
-		}
-	}
-
-	return nil, nil
 }
 
 func isAllowed(v ast.Node) bool {
@@ -130,38 +86,61 @@ func looksLikeError(i *ast.Ident) bool {
 	return strings.HasPrefix(i.Name, prefix)
 }
 
-func checkNoGlobals(genDecl *ast.GenDecl) []report {
-	var globalVariables []report
+func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
+	includeTests := pass.Analyzer.Flags.Lookup("t").Value.(flag.Getter).Get().(bool)
 
-	for _, spec := range genDecl.Specs {
-		valueSpec := spec.(*ast.ValueSpec)
-		onlyAllowedValues := false
-
-		for _, vn := range valueSpec.Values {
-			if isAllowed(vn) {
-				onlyAllowedValues = true
-				continue
-			}
-
-			onlyAllowedValues = false
-			break
+	for _, file := range pass.Files {
+		filename := pass.Fset.Position(file.Pos()).Filename
+		if !strings.HasSuffix(filename, ".go") {
+			continue
 		}
-
-		if onlyAllowedValues {
+		if !includeTests && strings.HasSuffix(filename, "_test.go") {
 			continue
 		}
 
-		for _, vn := range valueSpec.Names {
-			if isAllowed(vn) {
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok {
 				continue
 			}
 
-			globalVariables = append(globalVariables, report{
-				name: vn.Name,
-				pos:  vn.Pos(),
-			})
+			if genDecl.Tok != token.VAR {
+				continue
+			}
+
+			for _, spec := range genDecl.Specs {
+				valueSpec := spec.(*ast.ValueSpec)
+				onlyAllowedValues := false
+
+				for _, vn := range valueSpec.Values {
+					if isAllowed(vn) {
+						onlyAllowedValues = true
+						continue
+					}
+
+					onlyAllowedValues = false
+					break
+				}
+
+				if onlyAllowedValues {
+					continue
+				}
+
+				for _, vn := range valueSpec.Names {
+					if isAllowed(vn) {
+						continue
+					}
+
+					message := fmt.Sprintf("%s is a global variable", vn.Name)
+					pass.Report(analysis.Diagnostic{
+						Pos:      vn.Pos(),
+						Category: "global",
+						Message:  message,
+					})
+				}
+			}
 		}
 	}
 
-	return globalVariables
+	return nil, nil
 }
