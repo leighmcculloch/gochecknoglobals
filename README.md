@@ -36,7 +36,7 @@ specifying packages.
 [Go's analysis package]: https://pkg.go.dev/golang.org/x/tools/go/analysis
 
 ```
-gochecknoglobals <package>
+gochecknoglobals [package]
 ```
 
 ```
