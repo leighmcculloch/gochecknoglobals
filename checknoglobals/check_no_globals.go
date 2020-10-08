@@ -18,13 +18,24 @@ type allowedExpression struct {
 	SelName string
 }
 
+const Doc = `check that no global variables exist
+
+This analyzer checks for global variables and errors on any found.
+
+A global variable is a variable declared in package scope and that can be read
+and written to by any function within the package. Global variables can cause
+side effects which are difficult to keep track of. A code in one function may
+change the variables state while another unrelated chunk of code may be
+effected by it.
+`
+
 // Analyzer provides an Analyzer that checks that there are no global
 // variables, except for errors and variables containing regular
 // expressions.
 func Analyzer() *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name:             "gochecknoglobals",
-		Doc:              "Check that there are no global variables",
+		Doc:              Doc,
 		Run:              checkNoGlobals,
 		Flags:            flags(),
 		RunDespiteErrors: true,
