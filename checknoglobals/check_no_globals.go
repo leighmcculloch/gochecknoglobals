@@ -1,13 +1,13 @@
-package main
+package checknoglobals
 
 import (
+	"flag"
 	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
-	"os"
-	"path/filepath"
 	"strings"
+
+	"golang.org/x/tools/go/analysis"
 )
 
 // allowedExpression is a struct representing packages and methods that will
@@ -16,6 +16,36 @@ import (
 type allowedExpression struct {
 	Name    string
 	SelName string
+}
+
+const Doc = `check that no global variables exist
+
+This analyzer checks for global variables and errors on any found.
+
+A global variable is a variable declared in package scope and that can be read
+and written to by any function within the package. Global variables can cause
+side effects which are difficult to keep track of. A code in one function may
+change the variables state while another unrelated chunk of code may be
+effected by it.`
+
+// Analyzer provides an Analyzer that checks that there are no global
+// variables, except for errors and variables containing regular
+// expressions.
+func Analyzer() *analysis.Analyzer {
+	return &analysis.Analyzer{
+		Name:             "gochecknoglobals",
+		Doc:              Doc,
+		Run:              checkNoGlobals,
+		Flags:            flags(),
+		RunDespiteErrors: true,
+	}
+}
+
+func flags() flag.FlagSet {
+	flags := flag.NewFlagSet("", flag.ExitOnError)
+	flags.Bool("t", false, "Include tests")
+
+	return *flags
 }
 
 func isAllowed(v ast.Node) bool {
@@ -66,37 +96,16 @@ func looksLikeError(i *ast.Ident) bool {
 	return strings.HasPrefix(i.Name, prefix)
 }
 
-func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
-	const recursiveSuffix = string(filepath.Separator) + "..."
-	recursive := false
-	if strings.HasSuffix(rootPath, recursiveSuffix) {
-		recursive = true
-		rootPath = rootPath[:len(rootPath)-len(recursiveSuffix)]
-	}
+func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
+	includeTests := pass.Analyzer.Flags.Lookup("t").Value.(flag.Getter).Get().(bool)
 
-	messages := []string{}
-
-	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	for _, file := range pass.Files {
+		filename := pass.Fset.Position(file.Pos()).Filename
+		if !strings.HasSuffix(filename, ".go") {
+			continue
 		}
-		if info.IsDir() {
-			if !recursive && path != rootPath {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if !strings.HasSuffix(path, ".go") {
-			return nil
-		}
-		if !includeTests && strings.HasSuffix(path, "_test.go") {
-			return nil
-		}
-
-		fset := token.NewFileSet()
-		file, err := parser.ParseFile(fset, path, nil, 0)
-		if err != nil {
-			return err
+		if !includeTests && strings.HasSuffix(filename, "_test.go") {
+			continue
 		}
 
 		for _, decl := range file.Decls {
@@ -107,7 +116,6 @@ func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
 			if genDecl.Tok != token.VAR {
 				continue
 			}
-			filename := fset.Position(genDecl.TokPos).Filename
 			for _, spec := range genDecl.Specs {
 				valueSpec := spec.(*ast.ValueSpec)
 				onlyAllowedValues := false
@@ -131,14 +139,16 @@ func checkNoGlobals(rootPath string, includeTests bool) ([]string, error) {
 						continue
 					}
 
-					line := fset.Position(vn.Pos()).Line
-					message := fmt.Sprintf("%s:%d %s is a global variable", filename, line, vn.Name)
-					messages = append(messages, message)
+					message := fmt.Sprintf("%s is a global variable", vn.Name)
+					pass.Report(analysis.Diagnostic{
+						Pos:      vn.Pos(),
+						Category: "global",
+						Message:  message,
+					})
 				}
 			}
 		}
-		return nil
-	})
+	}
 
-	return messages, err
+	return nil, nil
 }

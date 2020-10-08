@@ -29,22 +29,23 @@ go get 4d63.com/gochecknoglobals
 
 ## Usage
 
+The linter is built on [Go's analysis package] and does thus support all the
+built in flags and features from this type. The analyzer is executed by
+specifying packages.
+
+[Go's analysis package]: https://pkg.go.dev/golang.org/x/tools/go/analysis
+
 ```
-gochecknoglobals
+gochecknoglobals [package]
 ```
 
 ```
 gochecknoglobals ./...
 ```
 
-```
-gochecknoglobals [path] [path] [path] [etc]
-```
-
-Add `-t` to include tests.
+By default, test files will not be checked but can be included by adding the
+`-t` flag.
 
 ```
-gochecknoglobals -t [path]
+gochecknoglobals -t [package]
 ```
-
-Note: Paths are only inspected recursively if the Go `/...` recursive path suffix is appended to the path.

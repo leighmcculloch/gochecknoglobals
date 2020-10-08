@@ -5,4 +5,4 @@ func someCode() bool {
 	return yourVar
 }
 
-var theVar = true
+var theVar = true // want "theVar is a global variable"

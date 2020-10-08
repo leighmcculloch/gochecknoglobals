@@ -7,7 +7,7 @@ import (
 )
 
 // myVar is just a bad named global var.
-var myVar = 1
+var myVar = 1 // want "myVar is a global variable"
 
 // ErrNotFound is an error and should be OK.
 var ErrNotFound = errors.New("this is error")
@@ -30,5 +30,5 @@ var (
 	PrecompileFour = regexp.MustCompile(`[a-z]{1,3}`)
 	PrecompileFive = regexp.MustCompile(`[a-z]{3,6}`)
 	PrecompileSix  = regexp.MustCompile(`[a-z]{6,9}`)
-	HTTPClient     = http.Client{}
+	HTTPClient     = http.Client{} // want "HTTPClient is a global variable"
 )
