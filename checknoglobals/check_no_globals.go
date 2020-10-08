@@ -26,8 +26,7 @@ A global variable is a variable declared in package scope and that can be read
 and written to by any function within the package. Global variables can cause
 side effects which are difficult to keep track of. A code in one function may
 change the variables state while another unrelated chunk of code may be
-effected by it.
-`
+effected by it.`
 
 // Analyzer provides an Analyzer that checks that there are no global
 // variables, except for errors and variables containing regular
