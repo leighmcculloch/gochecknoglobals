@@ -51,7 +51,7 @@ func flags() flag.FlagSet {
 func isAllowed(v ast.Node) bool {
 	switch i := v.(type) {
 	case *ast.Ident:
-		return i.Name == "_" || i.Name == "version" || looksLikeError(i)
+		return i.Name == "_" || i.Name == "version" || looksLikeError(i) || hasEmbedComment(i)
 	case *ast.CallExpr:
 		if expr, ok := i.Fun.(*ast.SelectorExpr); ok {
 			return isAllowedSelectorExpression(expr)
@@ -94,6 +94,31 @@ func looksLikeError(i *ast.Ident) bool {
 		prefix = "Err"
 	}
 	return strings.HasPrefix(i.Name, prefix)
+}
+
+// hasEmbedComment returns true if the AST identifier has
+// a '//go:embed ' comment, or false otherwise.
+func hasEmbedComment(i *ast.Ident) bool {
+	if i.Obj == nil {
+		return false
+	}
+
+	spec, ok := i.Obj.Decl.(*ast.ValueSpec)
+	if !ok {
+		return false
+	}
+
+	if spec.Doc == nil {
+		return false
+	}
+
+	for _, c := range spec.Doc.List {
+		if strings.HasPrefix(c.Text, "//go:embed ") {
+			return true
+		}
+	}
+
+	return false
 }
 
 func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
