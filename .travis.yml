@@ -6,7 +6,4 @@ go:
 go_import_path: 4d63.com/gochecknoglobals
 
 script:
-  - go test -coverprofile=coverage.txt
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - go test -cover
