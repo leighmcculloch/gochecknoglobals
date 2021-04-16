@@ -1,7 +1,6 @@
 # gochecknoglobals
 
 [![Build Status](https://img.shields.io/travis/leighmcculloch/gochecknoglobals.svg)](https://travis-ci.org/leighmcculloch/gochecknoglobals)
-[![Codecov](https://img.shields.io/codecov/c/github/leighmcculloch/gochecknoglobals.svg)](https://codecov.io/gh/leighmcculloch/gochecknoglobals)
 [![Go Report Card](https://goreportcard.com/badge/github.com/leighmcculloch/gochecknoglobals)](https://goreportcard.com/report/github.com/leighmcculloch/gochecknoglobals)
 
 Check that no globals are present in Go code.
