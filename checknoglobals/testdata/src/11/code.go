@@ -17,3 +17,7 @@ var (
 	//go:embed embedfiles/embedfile.txt
 	groupedData []byte
 )
+
+//go:embed embedfiles/*
+//
+var fileSystemExtraCommentLines embed.FS
