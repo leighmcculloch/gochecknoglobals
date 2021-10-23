@@ -21,3 +21,12 @@ var (
 //go:embed embedfiles/*
 //
 var fileSystemExtraCommentLines embed.FS
+
+//go:embed embedfiles/*
+
+var fileSystemEmptyLines embed.FS
+
+//go:embed embedfiles/*
+//
+
+var fileSystemExtraCommentLinesAndEmptyLines embed.FS
