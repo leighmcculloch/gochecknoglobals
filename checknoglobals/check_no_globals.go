@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"strconv"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -48,12 +49,16 @@ func flags() flag.FlagSet {
 	return *flags
 }
 
-func isAllowed(cm ast.CommentMap, v ast.Node) bool {
+type options struct {
+	EmbedEnabled bool
+}
+
+func isAllowed(opts options, cm ast.CommentMap, v ast.Node) bool {
 	switch i := v.(type) {
 	case *ast.GenDecl:
-		return hasEmbedComment(cm, i)
+		return hasEmbedComment(opts, cm, i)
 	case *ast.Ident:
-		return i.Name == "_" || i.Name == "version" || looksLikeError(i) || identHasEmbedComment(cm, i)
+		return i.Name == "_" || i.Name == "version" || looksLikeError(i) || identHasEmbedComment(opts, cm, i)
 	case *ast.CallExpr:
 		if expr, ok := i.Fun.(*ast.SelectorExpr); ok {
 			return isAllowedSelectorExpression(expr)
@@ -98,7 +103,7 @@ func looksLikeError(i *ast.Ident) bool {
 	return strings.HasPrefix(i.Name, prefix)
 }
 
-func identHasEmbedComment(cm ast.CommentMap, i *ast.Ident) bool {
+func identHasEmbedComment(opts options, cm ast.CommentMap, i *ast.Ident) bool {
 	if i.Obj == nil {
 		return false
 	}
@@ -108,12 +113,16 @@ func identHasEmbedComment(cm ast.CommentMap, i *ast.Ident) bool {
 		return false
 	}
 
-	return hasEmbedComment(cm, spec)
+	return hasEmbedComment(opts, cm, spec)
 }
 
 // hasEmbedComment returns true if the AST node has
 // a '//go:embed ' comment, or false otherwise.
-func hasEmbedComment(cm ast.CommentMap, n ast.Node) bool {
+func hasEmbedComment(opts options, cm ast.CommentMap, n ast.Node) bool {
+	if !opts.EmbedEnabled {
+		return false
+	}
+
 	for _, g := range cm[n] {
 		for _, c := range g.List {
 			if strings.HasPrefix(c.Text, "//go:embed ") {
@@ -136,6 +145,7 @@ func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
 			continue
 		}
 
+		opts := options{}
 		fileCommentMap := ast.NewCommentMap(pass.Fset, file, file.Comments)
 
 		for _, decl := range file.Decls {
@@ -143,10 +153,18 @@ func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
 			if !ok {
 				continue
 			}
+			if genDecl.Tok == token.IMPORT {
+				importSpec := genDecl.Specs[0].(*ast.ImportSpec)
+				importPath, _ := strconv.Unquote(importSpec.Path.Value)
+				if importPath == "embed" {
+					opts.EmbedEnabled = true
+				}
+				continue
+			}
 			if genDecl.Tok != token.VAR {
 				continue
 			}
-			if isAllowed(fileCommentMap, genDecl) {
+			if isAllowed(opts, fileCommentMap, genDecl) {
 				continue
 			}
 			for _, spec := range genDecl.Specs {
@@ -154,7 +172,7 @@ func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
 				onlyAllowedValues := false
 
 				for _, vn := range valueSpec.Values {
-					if isAllowed(fileCommentMap, vn) {
+					if isAllowed(opts, fileCommentMap, vn) {
 						onlyAllowedValues = true
 						continue
 					}
@@ -168,7 +186,7 @@ func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
 				}
 
 				for _, vn := range valueSpec.Names {
-					if isAllowed(fileCommentMap, vn) {
+					if isAllowed(opts, fileCommentMap, vn) {
 						continue
 					}
 

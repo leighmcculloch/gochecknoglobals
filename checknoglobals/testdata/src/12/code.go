@@ -1,25 +1,18 @@
 package code
 
-import (
-	"embed"
-)
-
-//go:embed embedfiles/*
-var fileSystem embed.FS
+//go:embed embedfiles/embedfile.txt
+var str string // want "str is a global variable"
 
 //go:embed embedfiles/embedfile.txt
-var str string
-
-//go:embed embedfiles/embedfile.txt
-var data []byte
+var data []byte // want "data is a global variable"
 
 //go:embed embedfiles/embedfile.txt
 //
-var strExtraCommentLines string
+var strExtraCommentLines string // want "strExtraCommentLines is a global variable"
 
 //go:embed embedfiles/embedfile.txt
 
-var strEmptyLines string
+var strEmptyLines string // want "strEmptyLines is a global variable"
 
 var strEmptyLinesNoComment string // want "strEmptyLinesNoComment is a global variable"
 
@@ -29,18 +22,18 @@ var strEmptyLinesOtherComment string // want "strEmptyLinesOtherComment is a glo
 //go:embed embedfiles/embedfile.txt
 //
 
-var strExtraCommentLinesAndEmptyLines string
+var strExtraCommentLinesAndEmptyLines string // want "strExtraCommentLinesAndEmptyLines is a global variable"
 
 var (
 	//go:embed embedfiles/embedfile.txt
-	groupedStr string
+	groupedStr string // want "groupedStr is a global variable"
 
 	//go:embed embedfiles/embedfile.txt
-	groupedData []byte
+	groupedData []byte // want "groupedData is a global variable"
 
 	//go:embed embedfiles/embedfile.txt
 
-	groupedStrEmptyLines string
+	groupedStrEmptyLines string // want "groupedStrEmptyLines is a global variable"
 
 	groupedStrEmptyLinesNoComment string // want "groupedStrEmptyLinesNoComment is a global variable"
 
@@ -50,5 +43,5 @@ var (
 	//go:embed embedfiles/embedfile.txt
 	//
 
-	groupedStrExtraCommentLinesAndEmptyLines string
+	groupedStrExtraCommentLinesAndEmptyLines string // want "groupedStrExtraCommentLinesAndEmptyLines is a global variable"
 )
