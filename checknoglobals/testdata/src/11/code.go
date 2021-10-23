@@ -18,6 +18,11 @@ var fileSystemExtraCommentLines embed.FS
 
 var fileSystemEmptyLines embed.FS
 
+var fileSystemEmptyLinesNoComment embed.FS // want "fileSystemEmptyLinesNoComment is a global variable"
+
+// go : embed that does not match
+var fileSystemEmptyLinesOtherComment embed.FS // want "fileSystemEmptyLinesOtherComment is a global variable"
+
 //go:embed embedfiles/*
 //
 
@@ -33,6 +38,11 @@ var (
 	//go:embed embedfiles/*
 
 	groupedFileSystemEmptyLines embed.FS
+
+	groupedFileSystemEmptyLinesNoComment embed.FS // want "groupedFileSystemEmptyLinesNoComment is a global variable"
+
+	// go : embed that does not match
+	groupedFileSystemEmptyLinesOtherComment embed.FS // want "groupedFileSystemEmptyLinesOtherComment is a global variable"
 
 	//go:embed embedfiles/*
 	//
