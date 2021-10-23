@@ -1,7 +1,6 @@
 package code
 
 import (
-	"embed"
 	"errors"
 	"net/http"
 	"regexp"
@@ -32,13 +31,4 @@ var (
 	PrecompileFive = regexp.MustCompile(`[a-z]{3,6}`)
 	PrecompileSix  = regexp.MustCompile(`[a-z]{6,9}`)
 	HTTPClient     = http.Client{} // want "HTTPClient is a global variable"
-)
-
-// Testing embedded data, all allowed.
-var (
-	//go:embed dummy/*
-	asserts embed.FS
-
-	//go:embed dummy/file.txt
-	data []byte
 )
