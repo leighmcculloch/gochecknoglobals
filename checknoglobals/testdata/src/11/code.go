@@ -10,14 +10,6 @@ var fileSystem embed.FS
 //go:embed embedfiles/embedfile.txt
 var data []byte
 
-var (
-	//go:embed embedfiles/*
-	groupedFileSystem embed.FS
-
-	//go:embed embedfiles/embedfile.txt
-	groupedData []byte
-)
-
 //go:embed embedfiles/*
 //
 var fileSystemExtraCommentLines embed.FS
@@ -30,3 +22,20 @@ var fileSystemEmptyLines embed.FS
 //
 
 var fileSystemExtraCommentLinesAndEmptyLines embed.FS
+
+var (
+	//go:embed embedfiles/*
+	groupedFileSystem embed.FS
+
+	//go:embed embedfiles/embedfile.txt
+	groupedData []byte
+
+	//go:embed embedfiles/*
+
+	groupedFileSystemEmptyLines embed.FS
+
+	//go:embed embedfiles/*
+	//
+
+	groupedFileSystemExtraCommentLinesAndEmptyLines embed.FS
+)
