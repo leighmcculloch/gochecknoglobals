@@ -51,7 +51,7 @@ func flags() flag.FlagSet {
 func isAllowed(v ast.Node) bool {
 	switch i := v.(type) {
 	case *ast.Ident:
-		return i.Name == "_" || i.Name == "version" || looksLikeError(i) || hasEmbedComment(i)
+		return i.Name == "_" || i.Name == "version" || looksLikeError(i) || identHasEmbedComment(i)
 	case *ast.CallExpr:
 		if expr, ok := i.Fun.(*ast.SelectorExpr); ok {
 			return isAllowedSelectorExpression(expr)
@@ -98,7 +98,7 @@ func looksLikeError(i *ast.Ident) bool {
 
 // hasEmbedComment returns true if the AST identifier has
 // a '//go:embed ' comment, or false otherwise.
-func hasEmbedComment(i *ast.Ident) bool {
+func identHasEmbedComment(i *ast.Ident) bool {
 	if i.Obj == nil {
 		return false
 	}
@@ -108,11 +108,14 @@ func hasEmbedComment(i *ast.Ident) bool {
 		return false
 	}
 
-	if spec.Doc == nil {
+	return hasEmbedComment(spec.Doc)
+}
+
+func hasEmbedComment(g *ast.CommentGroup) bool {
+	if g == nil {
 		return false
 	}
-
-	for _, c := range spec.Doc.List {
+	for _, c := range g.List {
 		if strings.HasPrefix(c.Text, "//go:embed ") {
 			return true
 		}
@@ -139,6 +142,9 @@ func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
 				continue
 			}
 			if genDecl.Tok != token.VAR {
+				continue
+			}
+			if hasEmbedComment(genDecl.Doc) {
 				continue
 			}
 			for _, spec := range genDecl.Specs {
