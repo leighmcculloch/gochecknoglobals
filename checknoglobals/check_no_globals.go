@@ -48,10 +48,6 @@ func flags() flag.FlagSet {
 	return *flags
 }
 
-type options struct {
-	EmbedEnabled bool
-}
-
 func isAllowed(cm ast.CommentMap, v ast.Node) bool {
 	switch i := v.(type) {
 	case *ast.GenDecl:
