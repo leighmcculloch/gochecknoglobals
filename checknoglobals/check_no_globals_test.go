@@ -16,7 +16,7 @@ func TestCheckNoGlobals(t *testing.T) {
 	analyzer := Analyzer()
 	analyzer.Flags = *flags
 
-	for i := 0; i <= 10; i++ {
+	for i := 0; i <= 11; i++ {
 		dir := strconv.Itoa(i)
 		t.Run(dir, func(t *testing.T) {
 			analysistest.Run(t, testdata, analyzer, dir)
