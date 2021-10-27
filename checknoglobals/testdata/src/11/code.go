@@ -31,6 +31,45 @@ var strEmptyLinesOtherComment string // want "strEmptyLinesOtherComment is a glo
 
 var strExtraCommentLinesAndEmptyLines string
 
+/*
+This is a long comment
+Spanning over multiple lines
+*/
+//go:embed embedfiles/embedfile.txt
+var strLongCommentAbove string
+
+//go:embed embedfiles/embedfile.txt
+/*
+This is a long comment
+Spanning over multiple lines
+*/
+var strLongCommentBelow string
+
+/*
+This is a long comment
+Spanning over multiple lines
+*/
+//go:embed embedfiles/embedfile.txt
+/*
+This is a long comment
+Spanning over multiple lines
+*/
+var strLongCommentSurround string
+
+/*
+This is a long comment
+Spanning over multiple lines
+*/
+
+//go:embed embedfiles/embedfile.txt
+
+/*
+This is a long comment
+Spanning over multiple lines
+*/
+
+var strLongCommentSurroundEmptyLines string
+
 var (
 	//go:embed embedfiles/embedfile.txt
 	groupedStr string
