@@ -8,11 +8,10 @@ var (
 	// Those are not errors
 	myVar = 1 // want "myVar is a global variable"
 
-	// Those are fake errors which are currently not detected
-	// because they start with 'err' or 'Err' and we don't
-	// check if such a variable implements the error interface.
-	errFakeErrorUnexported = 1
-	ErrFakeErrorExported   = 1
+	// Those are fake errors which are not allowed since they are basic literals and
+	// can be converted o const.
+	errFakeErrorUnexported = 1 // want "errFakeErrorUnexported is a global variable, should be a const"
+	ErrFakeErrorExported   = 1 // want "ErrFakeErrorExported is a global variable, should be a const"
 
 	// Those errors are not named correctly
 	myErrVar   = errors.New("myErrVar")   // want "myErrVar is a global variable"
