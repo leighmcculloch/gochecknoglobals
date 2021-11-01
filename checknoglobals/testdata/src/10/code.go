@@ -12,8 +12,8 @@ var myVar = 1 // want "myVar is a global variable"
 // ErrNotFound is an error and should be OK.
 var ErrNotFound = errors.New("this is error")
 
-// ErrIsNotErr is an error and should be OK.
-var ErrIsNotErr = 1
+// ErrIsNotErr is not an error and can be a const.
+var ErrIsNotErr = 1 // want "ErrIsNotErr is a global variable, should be a const"
 
 // IsOnlyDigitsRe is a global regexp that should be OK.
 var IsOnlyDigitsRe = regexp.MustCompile(`^\d+$`)

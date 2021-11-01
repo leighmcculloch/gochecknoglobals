@@ -7,11 +7,10 @@ import (
 // Those are not errors
 var myVar = 1 // want "myVar is a global variable"
 
-// Those are fake errors which are currently not detected
-// because they start with 'err' or 'Err' and we don't
-// check if such a variable implements the error interface.
-var errFakeErrorUnexported = 1
-var ErrFakeErrorExported = 1
+// Those are fake errors which are not allowed since they are basic literals and
+// can be converted o const.
+var errFakeErrorUnexported = 1 // want "errFakeErrorUnexported is a global variable, should be a const"
+var ErrFakeErrorExported = 1   // want "ErrFakeErrorExported is a global variable, should be a const"
 
 // Those errors are not named correctly
 var myErrVar = errors.New("myErrVar")    // want "myErrVar is a global variable"

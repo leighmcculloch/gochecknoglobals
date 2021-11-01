@@ -1,6 +1,7 @@
 package checknoglobals
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -8,6 +9,11 @@ import (
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
+)
+
+var (
+	errInvalidName = errors.New("invalid name of var")
+	errInvalidType = errors.New("var can be const")
 )
 
 // allowedExpression is a struct representing packages and methods that will
@@ -48,23 +54,45 @@ func flags() flag.FlagSet {
 	return *flags
 }
 
-func isAllowed(cm ast.CommentMap, v ast.Node) bool {
-	switch i := v.(type) {
-	case *ast.GenDecl:
-		return hasEmbedComment(cm, i)
-	case *ast.Ident:
-		return i.Name == "_" || i.Name == "version" || looksLikeError(i) || identHasEmbedComment(cm, i)
+func isAllowed(cm ast.CommentMap, name ast.Node, value ast.Node) error {
+	i, ok := name.(*ast.Ident)
+	if !ok {
+		return errInvalidName
+	}
+
+	// Allow specific expressions or things that we cannot guarantee doesn't
+	// implement the error interface. This means we don't allow basic literals
+	// since they can be converted to a const.
+	switch v := value.(type) {
 	case *ast.CallExpr:
-		if expr, ok := i.Fun.(*ast.SelectorExpr); ok {
-			return isAllowedSelectorExpression(expr)
+		if expr, ok := v.Fun.(*ast.SelectorExpr); ok {
+			if isAllowedSelectorExpression(expr) {
+				return nil
+			}
 		}
 	case *ast.CompositeLit:
-		if expr, ok := i.Type.(*ast.SelectorExpr); ok {
-			return isAllowedSelectorExpression(expr)
+		if expr, ok := v.Type.(*ast.SelectorExpr); ok {
+			if isAllowedSelectorExpression(expr) {
+				return nil
+			}
+		}
+	case *ast.BasicLit:
+		if i.Name != "_" && i.Name != "version" {
+			return errInvalidType
 		}
 	}
 
-	return false
+	// Allow embed vars.
+	if identHasEmbedComment(cm, i) {
+		return nil
+	}
+
+	// Independent of type, the name of the variable must be allowed.
+	if i.Name != "_" && i.Name != "version" && !looksLikeError(i) {
+		return errInvalidName
+	}
+
+	return nil
 }
 
 func isAllowedSelectorExpression(v *ast.SelectorExpr) bool {
@@ -146,38 +174,36 @@ func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
 			if genDecl.Tok != token.VAR {
 				continue
 			}
-			if isAllowed(fileCommentMap, genDecl) {
+
+			if hasEmbedComment(fileCommentMap, genDecl) {
 				continue
 			}
+
 			for _, spec := range genDecl.Specs {
 				valueSpec := spec.(*ast.ValueSpec)
-				onlyAllowedValues := false
 
-				for _, vn := range valueSpec.Values {
-					if isAllowed(fileCommentMap, vn) {
-						onlyAllowedValues = true
-						continue
+				for i := range valueSpec.Names {
+					var (
+						name  = valueSpec.Names[i]
+						value ast.Node
+					)
+
+					if len(valueSpec.Values) > i {
+						value = valueSpec.Values[i]
 					}
 
-					onlyAllowedValues = false
-					break
-				}
+					if err := isAllowed(fileCommentMap, name, value); err != nil {
+						message := fmt.Sprintf("%s is a global variable", name.Name)
+						if errors.Is(errInvalidType, err) {
+							message += ", should be a const"
+						}
 
-				if onlyAllowedValues {
-					continue
-				}
-
-				for _, vn := range valueSpec.Names {
-					if isAllowed(fileCommentMap, vn) {
-						continue
+						pass.Report(analysis.Diagnostic{
+							Pos:      name.Pos(),
+							Category: "global",
+							Message:  message,
+						})
 					}
-
-					message := fmt.Sprintf("%s is a global variable", vn.Name)
-					pass.Report(analysis.Diagnostic{
-						Pos:      vn.Pos(),
-						Category: "global",
-						Message:  message,
-					})
 				}
 			}
 		}
