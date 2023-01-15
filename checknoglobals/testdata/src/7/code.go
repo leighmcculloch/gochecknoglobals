@@ -33,6 +33,10 @@ var errUnexported = errors.New("errUnexported")
 var ErrExported = errors.New("ErrExported")
 var errCustomUnexported = &customError{"errCustomUnexported"}
 var ErrCustomExported = &customError{"ErrCustomExported"}
+var errCustomUnexported2 = customError2{"errCustomUnexported"}
+var ErrCustomExported2 = customError2{"ErrCustomExported"}
+var errCustomUnexported3 = customError3("errCustomUnexported")
+var ErrCustomExported3 = customError3("ErrCustomExported")
 var errUnexportedFunc = func() error { return errors.New("errUnexportedFunc") }()
 var ErrExportedFunc = func() error { return errors.New("ErrExportedFunc") }()
 var errCustomUnexportedFunc = func() *customError { return &customError{"errCustomUnexportedFunc"} }()
@@ -57,3 +61,15 @@ type customError struct{ e string }
 func (e *customError) Error() string { return e.e }
 
 func (e *customError) SomeOtherMethod() string { return e.e }
+
+type customError2 struct{ e string }
+
+func (e customError2) Error() string { return e.e }
+
+func (e customError2) SomeOtherMethod() string { return e.e }
+
+type customError3 string
+
+func (e customError3) Error() string { return string(e) }
+
+func (e customError3) SomeOtherMethod() string { return string(e) }
