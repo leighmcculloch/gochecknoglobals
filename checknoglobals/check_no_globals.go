@@ -90,31 +90,20 @@ func isAllowedSelectorExpression(v *ast.SelectorExpr) bool {
 // isError reports whether the AST identifier
 // starts with 'err' or 'Err' and implements the error interface.
 func isError(i *ast.Ident, ti *types.Info) bool {
-	// Check prefix
-	{
-		prefix := "err"
-		if i.IsExported() {
-			prefix = "Err"
-		}
-
-		hasErrPrefix := strings.HasPrefix(i.Name, prefix)
-		if !hasErrPrefix {
-			return false
-		}
+	prefix := "err"
+	if i.IsExported() {
+		prefix = "Err"
 	}
 
-	// Check type
-	{
-		t := ti.TypeOf(i)
-		et := types.Universe.Lookup("error").Type().Underlying().(*types.Interface)
-
-		implementsErr := types.Implements(t, et)
-		if !implementsErr {
-			return false
-		}
+	hasErrPrefix := strings.HasPrefix(i.Name, prefix)
+	if !hasErrPrefix {
+		return false
 	}
 
-	return true
+	t := ti.TypeOf(i)
+	et := types.Universe.Lookup("error").Type().Underlying().(*types.Interface)
+
+	return types.Implements(t, et)
 }
 
 func identHasEmbedComment(cm ast.CommentMap, i *ast.Ident) bool {
