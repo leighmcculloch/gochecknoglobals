@@ -24,7 +24,7 @@ There are very few exceptions to the global variable rule. This tool will ignore
 ## Install
 
 ```
-go get 4d63.com/gochecknoglobals
+go install 4d63.com/gochecknoglobals@latest
 ```
 
 ## Usage
