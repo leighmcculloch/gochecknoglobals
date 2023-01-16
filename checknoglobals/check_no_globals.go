@@ -87,22 +87,27 @@ func isAllowedSelectorExpression(v *ast.SelectorExpr) bool {
 	return false
 }
 
-// isError reports whether the AST identifier
-// starts with 'err' or 'Err' and implements the error interface.
+// isError reports whether the AST identifier looks like
+// an error and implements the error interface.
 func isError(i *ast.Ident, ti *types.Info) bool {
+	return looksLikeError(i) && implementsError(i, ti)
+}
+
+// looksLikeError returns true if the AST identifier starts
+// with 'err' or 'Err', or false otherwise.
+func looksLikeError(i *ast.Ident) bool {
 	prefix := "err"
 	if i.IsExported() {
 		prefix = "Err"
 	}
+	return strings.HasPrefix(i.Name, prefix)
+}
 
-	hasErrPrefix := strings.HasPrefix(i.Name, prefix)
-	if !hasErrPrefix {
-		return false
-	}
-
+// implementsError reports whether the AST identifier
+// implements the error interface.
+func implementsError(i *ast.Ident, ti *types.Info) bool {
 	t := ti.TypeOf(i)
 	et := types.Universe.Lookup("error").Type().Underlying().(*types.Interface)
-
 	return types.Implements(t, et)
 }
 
