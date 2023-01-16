@@ -15,7 +15,7 @@ https://twitter.com/davecheney/status/871939730761547776
 ### Exceptions
 
 There are very few exceptions to the global variable rule. This tool will ignore the following patterns:
- * Variables with an `Err` prefix
+ * Variables with an `err` or `Err` prefix that implement the `error` interface
  * Variables named `_`
  * Variables named `version`
  * Variables assigned from `regexp.MustCompile()`
