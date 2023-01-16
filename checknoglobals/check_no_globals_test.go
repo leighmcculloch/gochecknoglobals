@@ -23,3 +23,21 @@ func TestCheckNoGlobals(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkRun(b *testing.B) {
+	analyzer := Analyzer()
+	flags := flag.NewFlagSet("", flag.ExitOnError)
+	flags.Bool("t", true, "")
+	analyzer.Flags = *flags
+	testdata := analysistest.TestData()
+	results := analysistest.Run(b, testdata, analyzer, "./...")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, r := range results {
+			_, err := analyzer.Run(r.Pass)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	}
+}
