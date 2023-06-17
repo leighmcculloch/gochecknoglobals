@@ -43,9 +43,9 @@ gochecknoglobals [package]
 gochecknoglobals ./...
 ```
 
-By default, test files will not be checked but can be included by adding the
-`-t` flag.
+By default, test files are checked but can be excluded by adding the
+`-test=false` flag.
 
 ```
-gochecknoglobals -t [package]
+gochecknoglobals -test=false [package]
 ```
