@@ -24,6 +24,34 @@ func TestCheckNoGlobals(t *testing.T) {
 	}
 }
 
+func TestCheckNoGlobalsAllowedExpressions(t *testing.T) {
+	testdata := analysistest.TestData()
+	flags := flag.NewFlagSet("", flag.ExitOnError)
+	flags.Bool("t", true, "")
+	flags.String("allowed-expressions", "", "")
+
+	analyzer := Analyzer()
+	analyzer.Flags = *flags
+
+	dir := "12"
+	t.Run(dir, func(t *testing.T) {
+		analyzer.Flags.Set("allowed-expressions", "template.Must,sync.Once")
+
+		t.Run(dir, func(t *testing.T) {
+			analysistest.Run(t, testdata, analyzer, dir)
+		})
+	})
+
+	dir = "13"
+	t.Run(dir, func(t *testing.T) {
+		analyzer.Flags.Set("allowed-expressions", "invalid.,expression,http. Client")
+
+		t.Run(dir, func(t *testing.T) {
+			analysistest.Run(t, testdata, analyzer, dir)
+		})
+	})
+}
+
 func BenchmarkRun(b *testing.B) {
 	analyzer := Analyzer()
 	flags := flag.NewFlagSet("", flag.ExitOnError)

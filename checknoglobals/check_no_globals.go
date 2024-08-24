@@ -1,6 +1,7 @@
 package checknoglobals
 
 import (
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -16,6 +17,10 @@ import (
 type allowedExpression struct {
 	Name    string
 	SelName string
+}
+
+type config struct {
+	AllowedExpression []allowedExpression
 }
 
 const Doc = `check that no global variables exist
@@ -36,11 +41,21 @@ func Analyzer() *analysis.Analyzer {
 		Name:             "gochecknoglobals",
 		Doc:              Doc,
 		Run:              checkNoGlobals,
+		Flags:            options(),
 		RunDespiteErrors: true,
 	}
 }
 
-func isAllowed(cm ast.CommentMap, v ast.Node, ti *types.Info) bool {
+func options() flag.FlagSet {
+	options := flag.NewFlagSet("", flag.ExitOnError)
+	options.String(
+		"allowed-expressions", "",
+		"comma separated list of expressions to exclude from analysis. Ex. regex.MustCompile,promauto.NewHistorgamVec",
+	)
+	return *options
+}
+
+func isAllowed(conf *config, cm ast.CommentMap, v ast.Node, ti *types.Info) bool {
 	switch i := v.(type) {
 	case *ast.GenDecl:
 		return hasEmbedComment(cm, i)
@@ -48,28 +63,24 @@ func isAllowed(cm ast.CommentMap, v ast.Node, ti *types.Info) bool {
 		return i.Name == "_" || i.Name == "version" || isError(i, ti) || identHasEmbedComment(cm, i)
 	case *ast.CallExpr:
 		if expr, ok := i.Fun.(*ast.SelectorExpr); ok {
-			return isAllowedSelectorExpression(expr)
+			return isAllowedSelectorExpression(conf, expr)
 		}
 	case *ast.CompositeLit:
 		if expr, ok := i.Type.(*ast.SelectorExpr); ok {
-			return isAllowedSelectorExpression(expr)
+			return isAllowedSelectorExpression(conf, expr)
 		}
 	}
 
 	return false
 }
 
-func isAllowedSelectorExpression(v *ast.SelectorExpr) bool {
+func isAllowedSelectorExpression(conf *config, v *ast.SelectorExpr) bool {
 	x, ok := v.X.(*ast.Ident)
 	if !ok {
 		return false
 	}
 
-	allowList := []allowedExpression{
-		{Name: "regexp", SelName: "MustCompile"},
-	}
-
-	for _, i := range allowList {
+	for _, i := range conf.AllowedExpression {
 		if x.Name == i.Name && v.Sel.Name == i.SelName {
 			return true
 		}
@@ -128,7 +139,30 @@ func hasEmbedComment(cm ast.CommentMap, n ast.Node) bool {
 	return false
 }
 
+func parseAllowedExpressions(s string) []allowedExpression {
+	exprs := []allowedExpression{}
+	for _, str := range strings.Split(s, ",") {
+		name, sel, found := strings.Cut(str, ".")
+		if found {
+			exprs = append(exprs, allowedExpression{
+				Name:    name,
+				SelName: sel,
+			})
+		}
+	}
+	return exprs
+}
+
 func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
+	conf := &config{
+		AllowedExpression: []allowedExpression{
+			{Name: "regexp", SelName: "MustCompile"},
+		},
+	}
+	if f := pass.Analyzer.Flags.Lookup("allowed-expressions"); f != nil {
+		conf.AllowedExpression = parseAllowedExpressions(f.Value.String())
+	}
+
 	for _, file := range pass.Files {
 		filename := pass.Fset.Position(file.Pos()).Filename
 		if !strings.HasSuffix(filename, ".go") {
@@ -145,7 +179,7 @@ func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
 			if genDecl.Tok != token.VAR {
 				continue
 			}
-			if isAllowed(fileCommentMap, genDecl, pass.TypesInfo) {
+			if isAllowed(conf, fileCommentMap, genDecl, pass.TypesInfo) {
 				continue
 			}
 			for _, spec := range genDecl.Specs {
@@ -153,7 +187,7 @@ func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
 				onlyAllowedValues := false
 
 				for _, vn := range valueSpec.Values {
-					if isAllowed(fileCommentMap, vn, pass.TypesInfo) {
+					if isAllowed(conf, fileCommentMap, vn, pass.TypesInfo) {
 						onlyAllowedValues = true
 						continue
 					}
@@ -167,7 +201,7 @@ func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
 				}
 
 				for _, vn := range valueSpec.Names {
-					if isAllowed(fileCommentMap, vn, pass.TypesInfo) {
+					if isAllowed(conf, fileCommentMap, vn, pass.TypesInfo) {
 						continue
 					}
 
