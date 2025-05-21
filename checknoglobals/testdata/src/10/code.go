@@ -6,7 +6,7 @@ import (
 )
 
 // myVar is just a bad named global var.
-var myVar = 1 // want "myVar is a global variable"
+var myVar = 1
 
 // IsOnlyDigitsRe is a global regexp that should be OK.
 var IsOnlyDigitsRe = regexp.MustCompile(`^\d+$`)
@@ -23,5 +23,5 @@ var (
 	PrecompileFour = regexp.MustCompile(`[a-z]{1,3}`)
 	PrecompileFive = regexp.MustCompile(`[a-z]{3,6}`)
 	PrecompileSix  = regexp.MustCompile(`[a-z]{6,9}`)
-	HTTPClient     = http.Client{} // want "HTTPClient is a global variable"
+	HTTPClient     = http.Client{}
 )

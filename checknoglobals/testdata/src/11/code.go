@@ -21,10 +21,10 @@ var strExtraCommentLines string
 
 var strEmptyLines string
 
-var strEmptyLinesNoComment string // want "strEmptyLinesNoComment is a global variable"
+var strEmptyLinesNoComment string
 
 // go : embed that does not match
-var strEmptyLinesOtherComment string // want "strEmptyLinesOtherComment is a global variable"
+var strEmptyLinesOtherComment string
 
 //go:embed embedfiles/embedfile.txt
 //
@@ -81,10 +81,10 @@ var (
 
 	groupedStrEmptyLines string
 
-	groupedStrEmptyLinesNoComment string // want "groupedStrEmptyLinesNoComment is a global variable"
+	groupedStrEmptyLinesNoComment string
 
 	// go : embed that does not match
-	groupedStrEmptyLinesOtherComment string // want "groupedStrEmptyLinesOtherComment is a global variable"
+	groupedStrEmptyLinesOtherComment string
 
 	//go:embed embedfiles/embedfile.txt
 	//
