@@ -1,7 +1,7 @@
 package checknoglobals
 
 import (
-	"flag"
+	"strconv"
 	"testing"
 
 	"golang.org/x/tools/go/analysis/analysistest"
@@ -9,23 +9,46 @@ import (
 
 func TestCheckNoGlobals(t *testing.T) {
 	testdata := analysistest.TestData()
-	flags := flag.NewFlagSet("", flag.ExitOnError)
-	flags.Bool("t", true, "")
+	
+	// Keep track of the original value to restore it
+	originalCheckGlobalDeclarations := CheckGlobalDeclarations
+	defer func() {
+		CheckGlobalDeclarations = originalCheckGlobalDeclarations
+	}()
 
-	analyzer := Analyzer()
-	analyzer.Flags = *flags
-
-	// Run only our new test case
-	t.Run("12", func(t *testing.T) {
-		analysistest.Run(t, testdata, analyzer, "12")
+	// Run tests 0-11 with the original behavior (checking declarations)
+	t.Run("OldBehavior", func(t *testing.T) {
+		// Set the global flag to use the old behavior
+		CheckGlobalDeclarations = true
+		
+		analyzer := Analyzer()
+		
+		for i := 0; i <= 11; i++ {
+			dir := strconv.Itoa(i)
+			t.Run(dir, func(t *testing.T) {
+				analysistest.Run(t, testdata, analyzer, dir)
+			})
+		}
+	})
+	
+	// Run test 12 with the new behavior (checking mutations)
+	t.Run("NewBehavior", func(t *testing.T) {
+		// Ensure the global flag is set to the new behavior
+		CheckGlobalDeclarations = false
+		
+		analyzer := Analyzer()
+		
+		t.Run("12", func(t *testing.T) {
+			analysistest.Run(t, testdata, analyzer, "12")
+		})
 	})
 }
 
 func BenchmarkRun(b *testing.B) {
+	// Use the new behavior (checking mutations)
+	CheckGlobalDeclarations = false
+	
 	analyzer := Analyzer()
-	flags := flag.NewFlagSet("", flag.ExitOnError)
-	flags.Bool("t", true, "")
-	analyzer.Flags = *flags
 	dir, cleanup, err := analysistest.WriteFiles(map[string]string{
 		"file.go": `package code
 		import "errors"

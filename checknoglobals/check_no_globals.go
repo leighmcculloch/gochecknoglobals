@@ -33,17 +33,35 @@ affected by it.
 This analyzer allows global variables but disallows mutation of them, 
 encouraging them to be used like constants.`
 
+// CheckGlobalDeclarations determines whether to check global declarations (old behavior)
+// or mutations (new behavior)
+var CheckGlobalDeclarations bool
+
 // Analyzer provides an Analyzer that checks that global variables
 // are not mutated. Global variables themselves are allowed, but their values 
 // should not be changed after initialization.
 func Analyzer() *analysis.Analyzer {
-	return &analysis.Analyzer{
+	// Make a local copy of the flag to avoid concurrent modification issues
+	checkDecl := CheckGlobalDeclarations
+	
+	analyzer := &analysis.Analyzer{
 		Name:             "gochecknoglobals",
 		Doc:              Doc,
-		Run:              checkNoGlobals,
 		RunDespiteErrors: true,
 		Requires:         []*analysis.Analyzer{inspect.Analyzer},
 	}
+
+	// Add a flag for backward compatibility
+	analyzer.Flags.BoolVar(&checkDecl, "checkdecl", checkDecl, "Check global declarations instead of mutations (backward compatibility mode)")
+
+	analyzer.Run = func(pass *analysis.Pass) (interface{}, error) {
+		if checkDecl {
+			return checkNoGlobalsDeclarations(pass)
+		}
+		return checkNoGlobalsMutations(pass)
+	}
+
+	return analyzer
 }
 
 func isAllowed(cm ast.CommentMap, v ast.Node, ti *types.Info) bool {
@@ -134,7 +152,86 @@ func hasEmbedComment(cm ast.CommentMap, n ast.Node) bool {
 	return false
 }
 
-func checkNoGlobals(pass *analysis.Pass) (interface{}, error) {
+// checkNoGlobalsDeclarations implements the original behavior that reports all global variables
+func checkNoGlobalsDeclarations(pass *analysis.Pass) (interface{}, error) {
+	for _, file := range pass.Files {
+		filename := pass.Fset.Position(file.Pos()).Filename
+		if !strings.HasSuffix(filename, ".go") {
+			continue
+		}
+
+		fileCommentMap := ast.NewCommentMap(pass.Fset, file, file.Comments)
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok {
+				continue
+			}
+			if genDecl.Tok != token.VAR {
+				continue
+			}
+			if isAllowed(fileCommentMap, genDecl, pass.TypesInfo) {
+				continue
+			}
+
+			for _, spec := range genDecl.Specs {
+				valueSpec := spec.(*ast.ValueSpec)
+				if isAllowed(fileCommentMap, valueSpec, pass.TypesInfo) {
+					continue
+				}
+
+				for i, vn := range valueSpec.Names {
+					if vn.Name == "_" {
+						continue
+					}
+					if isAllowed(fileCommentMap, vn, pass.TypesInfo) {
+						continue
+					}
+
+					// Check if the value is in the allowlist (e.g., regexp.MustCompile)
+					if i < len(valueSpec.Values) {
+						if isAllowedValue(valueSpec.Values[i]) {
+							continue
+						}
+					}
+
+					message := fmt.Sprintf("%s is a global variable", vn.Name)
+					pass.Report(analysis.Diagnostic{
+						Pos:      vn.Pos(),
+						Category: "global",
+						Message:  message,
+					})
+				}
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+// isAllowedValue checks if a value expression is in the allowlist
+func isAllowedValue(expr ast.Expr) bool {
+	// Check for regexp.MustCompile calls
+	callExpr, ok := expr.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+
+	selectorExpr, ok := callExpr.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+
+	x, ok := selectorExpr.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+
+	// Check if it's regexp.MustCompile
+	return x.Name == "regexp" && selectorExpr.Sel.Name == "MustCompile"
+}
+
+// checkNoGlobalsMutations implements the new behavior that reports mutations of global variables
+func checkNoGlobalsMutations(pass *analysis.Pass) (interface{}, error) {
 	// Map to store global variables
 	globals := make(map[string]token.Pos)
 
