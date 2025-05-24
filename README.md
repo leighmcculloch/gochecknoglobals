@@ -3,23 +3,25 @@
 [![test](https://github.com/leighmcculloch/gochecknoglobals/actions/workflows/build.yml/badge.svg)](https://github.com/leighmcculloch/gochecknoglobals/actions/workflows/build.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/leighmcculloch/gochecknoglobals)](https://goreportcard.com/report/github.com/leighmcculloch/gochecknoglobals)
 
-Check that no globals are present in Go code.
+Check that global variables are not mutated in Go code.
 
 ## Why
 
-Global variables are an input to functions that is not visible in the functions signature, complicate testing, reduces readability and increase the complexity of code.
+Global variables are an input to functions that is not visible in the functions signature, complicate testing, reduces readability and increase the complexity of code. Side-effects arise when global variables are mutated because any function in a package can change an unexported package variable, and any function anywhere in an application can change an exported package variable.
+
+This linter allows global variables but disallows mutation of them after initialization, encouraging them to be used like constants.
 
 https://peter.bourgon.org/blog/2017/06/09/theory-of-modern-go.html
 https://twitter.com/davecheney/status/871939730761547776
 
 ### Exceptions
 
-There are very few exceptions to the global variable rule. This tool will ignore the following patterns:
- * Variables with an `err` or `Err` prefix that implement the `error` interface
- * Variables named `_`
- * Variables named `version`
- * Variables assigned from `regexp.MustCompile()`
- * Variables with a `//go:embed` comment
+Previously, this tool would error on all global variables with a few exceptions. 
+Now it allows global variables but errors on mutations of them, encouraging globals 
+to be used as pseudo-constants.
+
+The linter will report any assignment, increment, or decrement of a global variable 
+that occurs outside of the variable's initialization.
 
 ## Install
 
