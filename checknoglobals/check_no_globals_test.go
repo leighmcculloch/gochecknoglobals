@@ -31,16 +31,19 @@ func TestCheckNoGlobals(t *testing.T) {
 		}
 	})
 	
-	// Run test 12 with the new behavior (checking mutations)
+	// Run tests 12-14 with the new behavior (checking mutations)
 	t.Run("NewBehavior", func(t *testing.T) {
 		// Ensure the global flag is set to the new behavior
 		CheckGlobalDeclarations = false
 		
 		analyzer := Analyzer()
 		
-		t.Run("12", func(t *testing.T) {
-			analysistest.Run(t, testdata, analyzer, "12")
-		})
+		for i := 12; i <= 14; i++ {
+			dir := strconv.Itoa(i)
+			t.Run(dir, func(t *testing.T) {
+				analysistest.Run(t, testdata, analyzer, dir)
+			})
+		}
 	})
 }
 
